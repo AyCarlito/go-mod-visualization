@@ -6,6 +6,10 @@
 </head>
 
 <body>
+  <input type="text" id="searchInput" placeholder="Search dependencies" />
+  <button id="searchButton">Search</button>
+  <button id="resetButton">Reset</button>
+
   <div id="graph"></div>
 
   <script>
@@ -52,7 +56,14 @@
     const Graph = new ForceGraph(elem)
       .graphData(gData)
       .nodeId('id')
+      .onNodeClick(node => {
+        Graph.centerAt(node.x, node.y, 500);
+        Graph.zoom(4, 750);
+      })
       .onNodeHover(node => {
+        if (query !== "") {
+          return
+        }
         highlightNodes.clear();
         highlightLinks.clear();
         if (node){
@@ -67,6 +78,9 @@
         hoverNode = node || null;
       })
       .onLinkHover(link => {
+        if (query !== "") {
+          return
+        }
         highlightNodes.clear();
         highlightLinks.clear();
 
@@ -99,5 +113,31 @@
       }
       return "#A4A5A5"
     }
+
+    let query = ""
+    document.getElementById("searchButton").addEventListener("click", function () {
+      query = document.getElementById("searchInput").value;
+      highlightNodes.clear();
+      highlightLinks.clear();
+
+      const matchedNodes = gData.nodes.filter(node => node.id.includes(query))
+      matchedNodes.forEach(node => {
+        highlightNodes.add(node)
+        if (node.neighbors !== undefined) {
+          node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
+        }
+        if (node.links !== undefined) {
+          node.links.forEach(link => highlightLinks.add(link));
+        }
+      })
+    });
+
+    document.getElementById('resetButton').addEventListener('click', function () {
+      highlightNodes.clear();
+      highlightLinks.clear();
+      document.getElementById('searchInput').value = "";
+      query = "";
+    });
+
   </script>
 </body>
