@@ -5,6 +5,14 @@ SHELL = /usr/bin/env bash -o pipefail
 
 VERSION ?= $(shell bin/get_version.sh)
 
+IMAGE_REGISTRY ?=
+IMAGE_TAG_BASE ?= aycarlito/go-mod-visualization
+IMG ?= $(IMAGE_TAG_BASE):$(VERSION)
+
+ifneq ($(IMAGE_REGISTRY),)
+IMG := $(IMAGE_REGISTRY)/$(IMG)
+endif
+
 ##@ General
 
 # The help target prints out all targets with their descriptions organized
@@ -36,6 +44,10 @@ vet: ## Run go vet against code.
 run: ## Run the application.
 	go run . $(CMD) $(FLAGS)
 
+.PHONY: docker-run
+docker-run: ## Run the docker image.
+	docker run -i --user $(shell id -u):$(shell id -g) $(IMG) $(CMD) $(FLAGS) 
+
 ##@ Build
 clean:
 	go clean -modcache
@@ -49,6 +61,14 @@ pre:
 .PHONY: build
 build: pre fmt vet ## Build binary.
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/go-mod-visualization
+
+.PHONY: docker-build 
+docker-build: ## Build docker image.
+	docker build --platform linux/amd64 -t ${IMG} .
+
+.PHONY: docker-push
+docker-push: ## Push docker image.
+	docker push ${IMG}
 
 ##@ Build Dependencies
 ## Location to install dependencies to
