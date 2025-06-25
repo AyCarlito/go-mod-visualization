@@ -1,9 +1,7 @@
 digraph Visualization {
     pad=1;
 	rankdir=TB;
-    ranksep="1.2 equally";
     splines=ortho;
-    nodesep=0.8;
     node [shape=plaintext style="filled,rounded" penwidth=2 fontsize=12 fontname="monospace"];
     
     {{- range $idx, $edge := .Edges  }}
@@ -15,8 +13,11 @@ digraph Visualization {
     }
 
     subgraph dependencies {
-        {{- range $idx, $dependency := .Unselected  }}
-        "{{ $dependency.Path }}@{{ $dependency.Version }}" [ fillcolor="#A4A5A5" label=<<table border="0" cellspacing="10"><tr><td><font color="#010101"><b>{{ $dependency.Path }}</b></font></td></tr><tr><td><font color="#010101">{{ $dependency.Version }}</font></td></tr></table>> ]
+        {{- range $dependency, $ := .Unselected  }}
+        {{- $parts := split $dependency "@" }}
+        {{- $path := index $parts 0 }}
+        {{- $version := index $parts 1 }}
+        "{{ $path }}@{{ $version }}" [ fillcolor="#A4A5A5" label=<<table border="0" cellspacing="10"><tr><td><font color="#010101"><b>{{ $path }}</b></font></td></tr><tr><td><font color="#010101">{{ $version }}</font></td></tr></table>> ]
         {{- end }}
 
         {{- range $path, $version := .Selected  }}

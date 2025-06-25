@@ -22,12 +22,6 @@ type Edge struct {
 	Dst string
 }
 
-// Dependency is a dependency in a module.
-type Dependency struct {
-	Path    string
-	Version string
-}
-
 // Graph is a heirarchical representation of dependencies in a Go module.
 type Graph struct {
 	// Root is the module being represented.
@@ -41,7 +35,7 @@ type Graph struct {
 	Selected map[string]string
 
 	// Unselected are the dependencies that are not included when the Go module is built.
-	Unselected []Dependency
+	Unselected map[string]struct{}
 
 	// format is the output format of the graph.
 	format string
@@ -50,8 +44,9 @@ type Graph struct {
 // newGraph returns a new *graph.
 func newGraph(format string) *Graph {
 	return &Graph{
-		Selected: make(map[string]string),
-		format:   format,
+		Selected:   make(map[string]string),
+		Unselected: make(map[string]struct{}),
+		format:     format,
 	}
 }
 
@@ -88,17 +83,10 @@ func (g *Graph) AddNode(node string) {
 			// This version is now the latest version.
 			// Store it, and add the previous latest version as an unselected dependency.
 			g.Selected[path] = version
-			g.Unselected = append(g.Unselected, Dependency{
-				Path:    path,
-				Version: latestVersion,
-			})
+			g.Unselected[fmt.Sprintf("%s@%s", path, latestVersion)] = struct{}{}
 		} else {
-			// Existing latest version is still the latest version.
-			// Store this version as an unselected dependency.
-			g.Unselected = append(g.Unselected, Dependency{
-				Path:    path,
-				Version: version,
-			})
+			// Add this version as an unselected dependency.
+			g.Unselected[node] = struct{}{}
 		}
 	}
 }
@@ -115,7 +103,7 @@ func (g *Graph) String() (string, error) {
 		return "", fmt.Errorf("invalid output format: %s", g.format)
 	}
 
-	t, err := template.New("graph").Parse(outputTemplate)
+	t, err := template.New("graph").Funcs(template.FuncMap{"split": strings.Split}).Parse(outputTemplate)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template: %v", err)
 	}

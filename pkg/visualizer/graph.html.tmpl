@@ -21,8 +21,8 @@
         {"id":"{{ $path }}@{{ $version }}", "group":1},
         {{- end }}
 
-        {{- range $idx, $dependency := .Unselected  }}
-        {"id":"{{ $dependency.Path }}@{{ $dependency.Version }}", "group":2},
+        {{- range $dependecy, $ := .Unselected  }}
+        {"id":"{{ $dependecy }}", "group":2},
         {{- end }}
       ],
       links: [
