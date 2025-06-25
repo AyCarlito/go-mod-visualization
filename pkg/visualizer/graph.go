@@ -10,10 +10,10 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-//go:embed graph.dot.tmpl
+//go:embed templates/graph.dot.tmpl
 var dotTemplate string
 
-//go:embed graph.html.tmpl
+//go:embed templates/graph.html.tmpl
 var htmlTemplate string
 
 // Edge is a connection beteeen two nodes.
