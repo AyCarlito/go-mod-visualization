@@ -56,10 +56,6 @@
     const Graph = new ForceGraph(elem)
       .graphData(gData)
       .nodeId('id')
-      .onNodeClick(node => {
-        Graph.centerAt(node.x, node.y, 500);
-        Graph.zoom(4, 750);
-      })
       .onNodeHover(node => {
         if (query !== "") {
           return
