@@ -1,0 +1,28 @@
+digraph Visualization {
+    pad=1;
+	rankdir=TB;
+    splines=ortho;
+    node [shape=plaintext style="filled,rounded" penwidth=2 fontsize=12 fontname="monospace"];
+    
+    {{- range $idx, $edge := .Edges  }}
+    "{{ $edge.Src }}"->"{{ $edge.Dst }}"
+    {{- end }}
+
+    subgraph root {
+        "{{ .Root }}" [ fillcolor="#4F9DDE" fontcolor="#fafafa" label=<<b>{{ .Root }}</b>>]
+    }
+
+    subgraph dependencies {
+        {{- range $dependency, $ := .Unselected  }}
+        {{- $parts := split $dependency "@" }}
+        {{- $path := index $parts 0 }}
+        {{- $version := index $parts 1 }}
+        "{{ $path }}@{{ $version }}" [ fillcolor="#A4A5A5" label=<<table border="0" cellspacing="10"><tr><td><font color="#010101"><b>{{ $path }}</b></font></td></tr><tr><td><font color="#010101">{{ $version }}</font></td></tr></table>> ]
+        {{- end }}
+
+        {{- range $path, $version := .Selected  }}
+        "{{ $path }}@{{ $version }}" [ fillcolor="#4F9DDE" label=<<table border="0" cellspacing="10"><tr><td><font color="#fafafa"><b>{{ $path }}</b></font></td></tr><tr><td><font color="#fafafa">{{ $version }}</font></td></tr></table>> ]
+        {{- end }}
+    }
+    
+}

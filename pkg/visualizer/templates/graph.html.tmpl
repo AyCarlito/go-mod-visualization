@@ -1,0 +1,169 @@
+<head>
+  <style> body { margin: 0; } </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/force-graph"></script>
+  <!--<script src="../../dist/force-graph.js"></script>-->
+</head>
+
+<body>
+  <input type="text" id="searchInput" placeholder="Search dependencies" />
+  <button id="searchButton">Search</button>
+  <button id="resetButton">Reset</button>
+
+  <div id="graph"></div>
+
+  <script>
+    const gData = {
+      nodes: [
+        {"id":"{{ .Root }}", "group":1},
+
+        {{- range $path, $version := .Selected  }}
+        {"id":"{{ $path }}@{{ $version }}", "group":1},
+        {{- end }}
+
+        {{- range $dependecy, $ := .Unselected  }}
+        {"id":"{{ $dependecy }}", "group":2},
+        {{- end }}
+      ],
+      links: [
+        {{- range $idx, $edge := .Edges  }}
+        {"source":"{{ $edge.Src }}", "target":"{{ $edge.Dst }}"},
+        {{- end }}
+      ]
+    };
+
+    gData.links.forEach(link => {
+      const a = gData.nodes.find(node => node.id === link.source)
+      const b = gData.nodes.find(node => node.id === link.target)
+      !a.neighbors && (a.neighbors = []);
+      !b.neighbors && (b.neighbors = []);
+      a.neighbors.push(b);
+      b.neighbors.push(a);
+
+      !a.links && (a.links = []);
+      !b.links && (b.links = []);
+      a.links.push(link);
+      b.links.push(link);
+    });
+
+
+    const highlightNodes = new Set();
+    const highlightLinks = new Set();
+    let hoverNode = null;
+    let hoverLink = null;
+
+    const elem = document.getElementById('graph');
+
+    const Graph = new ForceGraph(elem)
+      .graphData(gData)
+      .nodeId('id')
+      .onNodeHover(node => {
+        // Search is mutually exclusive with hover behaviour.
+        if (query !== "") {
+          return
+        }
+
+        highlightNodes.clear();
+        highlightLinks.clear();
+        if (node){
+          highlightNodes.add(node);
+          if (node.neighbors !== undefined){
+            node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
+          }
+          if (node.links !== undefined){
+            node.links.forEach(link => highlightLinks.add(link));
+          }
+        }
+        hoverNode = node || null;
+      })
+      .nodeVisibility((node) => {
+        // Show node when one of:
+        // - There are no highlighted nodes.
+        // - This node is a highlighted node.
+        // - Any link hover.
+        return (highlightNodes.size == 0 || (highlightNodes.size > 0 && highlightNodes.has(node)) || hoverLink !== null)
+      })
+      .onLinkHover(link => {
+        // Search is mutually exclusive with hover behaviour.
+        if (query !== "") {
+          return
+        }
+
+        highlightNodes.clear();
+        highlightLinks.clear();
+        if (link) {
+          highlightLinks.add(link);
+          highlightNodes.add(link.source);
+          highlightNodes.add(link.target);
+        }
+        hoverLink = link || null;
+      })
+      .linkVisibility((link) => {
+        // Show link when one of:
+        // - There are no highlighted links.
+        // - This link is a highlighted link.
+        // - Any link hover.
+        return (highlightLinks.size == 0 || (highlightLinks.size > 0 && highlightLinks.has(link)) || hoverLink !== null)
+      })
+      .linkWidth(link => highlightLinks.has(link) ? 4 : 1)
+      .linkDirectionalParticles(4)
+      .linkDirectionalParticleWidth(link => highlightLinks.has(link) ? 4 : 0)
+      .nodeCanvasObjectMode(node => highlightNodes.has(node) ? 'replace' : undefined)
+      .nodeCanvasObject((node, ctx, globalScale) => {
+        const label = `${node.id}`;
+        const fontSize = 16 / globalScale;
+        ctx.font = `bold ${fontSize}px monospace`;
+        ctx.fontWeight = "900";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = getFillStyle(node.group);
+        ctx.fillText(label, node.x, node.y);
+
+      })
+      .nodeColor(node => getFillStyle(node.group));
+
+    /**
+     * Returns the canvas fill style for a node.
+     *
+     * @param {number} group - The group a node belongs to.
+     * @returns {string} - Hexdecimal color code.
+     */
+    function getFillStyle(group) {
+      if (group === 1) {
+        return "#4F9DDE"
+      }
+      return "#A4A5A5"
+    }
+
+    let query = ""
+    document.getElementById("searchButton").addEventListener("click", function () {
+      query = document.getElementById("searchInput").value;
+      highlightNodes.clear();
+      highlightLinks.clear();
+
+      const matchedNodes = gData.nodes.filter(node => node.id.includes(query))
+      matchedNodes.forEach(node => {
+        highlightNodes.add(node)
+        if (node.neighbors !== undefined) {
+          node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
+        }
+        if (node.links !== undefined) {
+          node.links.forEach(link => highlightLinks.add(link));
+        }
+      })
+      // If we have exactly one match from the query, centre and zoom the graph on the node.
+      if(matchedNodes.length === 1) {
+        Graph.centerAt(matchedNodes[0].x, matchedNodes[0].y, 500);
+        Graph.zoom(4, 750);
+      }
+    });
+
+    document.getElementById('resetButton').addEventListener('click', function () {
+      highlightNodes.clear();
+      highlightLinks.clear();
+      document.getElementById('searchInput').value = "";
+      query = "";
+    });
+
+  </script>
+</body>
