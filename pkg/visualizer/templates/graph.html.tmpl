@@ -50,6 +50,7 @@
     const highlightNodes = new Set();
     const highlightLinks = new Set();
     let hoverNode = null;
+    let hoverLink = null;
 
     const elem = document.getElementById('graph');
 
@@ -57,9 +58,11 @@
       .graphData(gData)
       .nodeId('id')
       .onNodeHover(node => {
+        // Search is mutually exclusive with hover behaviour.
         if (query !== "") {
           return
         }
+
         highlightNodes.clear();
         highlightLinks.clear();
         if (node){
@@ -73,18 +76,34 @@
         }
         hoverNode = node || null;
       })
+      .nodeVisibility((node) => {
+        // Show node when one of:
+        // - There are no highlighted nodes.
+        // - This node is a highlighted node.
+        // - Any link hover.
+        return (highlightNodes.size == 0 || (highlightNodes.size > 0 && highlightNodes.has(node)) || hoverLink !== null)
+      })
       .onLinkHover(link => {
+        // Search is mutually exclusive with hover behaviour.
         if (query !== "") {
           return
         }
+
         highlightNodes.clear();
         highlightLinks.clear();
-
         if (link) {
           highlightLinks.add(link);
           highlightNodes.add(link.source);
           highlightNodes.add(link.target);
         }
+        hoverLink = link || null;
+      })
+      .linkVisibility((link) => {
+        // Show link when one of:
+        // - There are no highlighted links.
+        // - This link is a highlighted link.
+        // - Any link hover.
+        return (highlightLinks.size == 0 || (highlightLinks.size > 0 && highlightLinks.has(link)) || hoverLink !== null)
       })
       .linkWidth(link => highlightLinks.has(link) ? 4 : 1)
       .linkDirectionalParticles(4)
@@ -103,6 +122,12 @@
       })
       .nodeColor(node => getFillStyle(node.group));
 
+    /**
+     * Returns the canvas fill style for a node.
+     *
+     * @param {number} group - The group a node belongs to.
+     * @returns {string} - Hexdecimal color code.
+     */
     function getFillStyle(group) {
       if (group === 1) {
         return "#4F9DDE"
@@ -126,6 +151,11 @@
           node.links.forEach(link => highlightLinks.add(link));
         }
       })
+      // If we have exactly one match from the query, centre and zoom the graph on the node.
+      if(matchedNodes.length === 1) {
+        Graph.centerAt(matchedNodes[0].x, matchedNodes[0].y, 500);
+        Graph.zoom(4, 750);
+      }
     });
 
     document.getElementById('resetButton').addEventListener('click', function () {
